@@ -24,6 +24,8 @@ if(WEBROGUE_NATIVE_MODS)
         message(FATAL_ERROR)
     endif()
 endif()
+
+exec_program(git ${CMAKE_CURRENT_LIST_DIR}/external/ggml ARGS apply ../ggml.patch OUTPUT_VARIABLE v)
 add_subdirectory(external/ggml/src ggml)
 
 if(WEBROGUE_NATIVE_MODS)
