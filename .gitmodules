@@ -1,3 +1,4 @@
 [submodule "external/ggml"]
 	path = external/ggml
 	url = https://github.com/ggerganov/ggml.git
+	ignore = dirty
