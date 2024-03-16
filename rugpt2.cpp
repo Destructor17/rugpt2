@@ -148,8 +148,9 @@ void init_backends(gpt2_model &model, const gpt_params &params) {
 std::string allGeneratedText;
 
 void rugpt2Print(const char *str) {
-    allGeneratedText += str;
-    auto utf32str = toUTF32(allGeneratedText);
+    if (str[0])
+        allGeneratedText += str;
+    auto const utf32str = toUTF32(allGeneratedText);
     size_t width, height;
     wr_glyph *drawingArea = webrogue_core_get_drawing_area(&width, &height);
     for (int x = 0; x < width; x++)
@@ -208,6 +209,41 @@ void rugpt2Print(const char *str) {
         sprintf(str, fmt, __VA_ARGS__);                                        \
         rugpt2Print(str);                                                      \
     } while (0)
+
+std::string rugpt2GetStr() {
+    size_t const prevTextSize = allGeneratedText.size();
+
+    bool breaked = false;
+    while (!breaked) {
+        rugpt2Print("");
+
+        size_t eventCount;
+        webrogue_event *events = webrogue_core_get_events(&eventCount);
+        for (size_t i = 0; i < eventCount; i++) {
+            webrogue_event const event = events[i];
+            switch (event.type) {
+            case Close:
+                exit(0);
+            case MouseLeftButtonReleased:
+                breaked = true;
+                break;
+            case Key:
+                if (event.data1 == 0x157 || event.data1 == 13) {
+                    breaked = true;
+                }
+                break;
+            case Char:
+                allGeneratedText += static_cast<char>(event.data1);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    auto str = allGeneratedText.substr(prevTextSize);
+    rugpt2Print("\n");
+    return str;
+}
 
 // load the model's weights from a file
 bool gpt2_model_load(const std::string &fname, gpt2_model &model,
@@ -1078,6 +1114,7 @@ void rugpt2InitializationStep() {
 
     WRPRINTF("%s: seed = %d\n", __func__, params.seed);
     std::mt19937 rng(params.seed);
+    params.prompt = rugpt2GetStr();
     if (params.prompt.empty()) {
         params.prompt = gpt_random_prompt(rng);
     }
@@ -1262,7 +1299,7 @@ void rugpt2InitializationStep() {
                 return;
             case MouseLeftButtonReleased:
                 return;
-            case Char:
+            case Key:
                 return;
             default:
                 break;
